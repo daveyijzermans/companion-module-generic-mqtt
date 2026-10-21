@@ -95,10 +95,11 @@ export default class GenericMqttInstance extends InstanceBase {
 					},
 				],
 				callback: (feedback) => {
-					// Update subscription
-					if (feedback.previousOptions?.subscribeTopic) {
-						// Unsubscribe from previous topic if it exists
-						this._unsubscribeToTopic(feedback.previousOptions.subscribeTopic, feedback.id)
+					// Update subscription. Unsubscribing from an unchanged topic would make the broker resend its retained
+					// message on the resubscribe, which runs this callback again: a loop.
+					const previousTopic = feedback.previousOptions?.subscribeTopic
+					if (previousTopic && previousTopic !== feedback.options.subscribeTopic) {
+						this._unsubscribeToTopic(previousTopic, feedback.id)
 					}
 
 					const subData = {
@@ -145,12 +146,11 @@ export default class GenericMqttInstance extends InstanceBase {
 					}
 				],
 				callback: (feedback) => {
-					// Update subscription
-					if (feedback.previousOptions?.subscribeTopic) {
-						// Unsubscribe from previous topic if it exists
-						this._unsubscribeToTopic(feedback.previousOptions.subscribeTopic, feedback.id)
+					// Update subscription; an unchanged topic stays subscribed (see mqtt_variable)
+					const previousTopic = feedback.previousOptions?.subscribeTopic
+					if (previousTopic && previousTopic !== feedback.options.subscribeTopic) {
+						this._unsubscribeToTopic(previousTopic, feedback.id)
 					}
-
 
 					let subscribeTopic = (feedback.options.subscribeTopic)
 					this._subscribeToTopic(subscribeTopic, feedback.id, 'mqtt_value2')
