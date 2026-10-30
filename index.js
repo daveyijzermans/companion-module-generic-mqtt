@@ -143,7 +143,14 @@ export default class GenericMqttInstance extends InstanceBase {
 						default: false,
 						disableAutoExpression: true,
 						tooltip: 'If enabled, the module will attempt to parse the MQTT message as JSON before returning it. If parsing fails, the raw message will be returned.',
-					}
+					},
+					{
+						type: 'textinput',
+						label: 'JSON Path (blank: the whole message)',
+						id: 'subpath',
+						default: '',
+						tooltip: 'A field of a JSON message, as a dotted path (rooms.kantoor.state); a message that is not JSON gives no value.',
+					},
 				],
 				callback: (feedback) => {
 					// Update subscription; an unchanged topic stays subscribed (see mqtt_variable)
@@ -156,6 +163,16 @@ export default class GenericMqttInstance extends InstanceBase {
 					this._subscribeToTopic(subscribeTopic, feedback.id, 'mqtt_value2')
 					
 					let value = this.mqtt_topic_value_cache.get(subscribeTopic)
+
+					if (feedback.options.subpath && value !== undefined) {
+						try {
+							value = objectPath.get(JSON.parse(value), feedback.options.subpath)
+						} catch (e) {
+							value = undefined
+						}
+						if (value !== null && typeof value === 'object') value = JSON.stringify(value)
+						return value
+					}
 
 					if (feedback.options.parseJson) {
 						try {
